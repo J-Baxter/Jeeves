@@ -1,1 +1,9 @@
 exportPattern("^[[:alpha:]]+")
+importFrom(magrittr, '%>%')
+importFrom(dplyr, 'mutate', 'select', 'row_number', 'left_join', 'distinct', 'filter')
+importFrom(tibble, 'rowid_to_column', 'tibble', 'as_tibble')
+importFrom(igraph, 'graph_from_data_frame', 'components')
+importFrom(phangorn, 'dist.hamming', 'as.phyDat')
+importFrom(ape, 'as.DNAbin')
+
+
