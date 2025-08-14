@@ -15,12 +15,12 @@ GroupSequences <- function(aln, snp_threshold = 0){
   # Sanity checks
  if(inherits(aln, "PhyDat")){
     aln_formatted <- aln
-    aln <- ape::as.DNAbin(aln) %>%
+    aln <- as.DNAbin(aln) %>%
       as.matrix(.)
 
   }else if(inherits(aln, "DNAbin")){
     aln <- as.matrix(aln)
-    aln_formatted <- phangorn::as.phyDat(aln)
+    aln_formatted <- as.phyDat(aln)
 
   }else{
     stop('Aln must be a DNAbin or phyDat.')
@@ -33,7 +33,7 @@ GroupSequences <- function(aln, snp_threshold = 0){
 
 
   # Calculate hamming distance
-  hd_normalised <- phangorn::dist.hamming(aln_formatted) %>%
+  hd_normalised <- dist.hamming(aln_formatted) %>%
     as.matrix()
   hd_raw <- hd_normalised * ncol(aln)
 
@@ -41,23 +41,23 @@ GroupSequences <- function(aln, snp_threshold = 0){
   if( any(hd_raw[lower.tri(hd_raw, diag = FALSE)] <= snp_threshold)){
     groups <- which(hd_raw <= snp_threshold,
                     arr.ind = TRUE) %>%
-      dplyr::as_tibble(rownames = 'tipnames') %>%
-      dplyr::filter(row !=col) %>%
-      dplyr::select(-tipnames) %>%
+      as_tibble(rownames = 'tipnames') %>%
+      filter(row !=col) %>%
+      select(-tipnames) %>%
 
       # Infer network from HDs
-      igraph::graph_from_data_frame(.,
-                                    directed = F) %>%
+      graph_from_data_frame(.,
+                            directed = F) %>%
 
       components() %>%
       getElement('membership') %>%
       stack() %>%
-      dplyr::as_tibble() %>%
-      dplyr::mutate(ind = as.numeric(as.character(ind))) %>%
-      dplyr::mutate(tipnames = map_chr(ind, ~ rownames(aln)[.x])) %>%
-      dplyr::select(c(tipnames, values)) %>%
-      dplyr::distinct() %>%
-      dplyr::rename(sequence_group = values)
+      as_tibble() %>%
+      mutate(ind = as.numeric(as.character(ind))) %>%
+      mutate(tipnames = map_chr(ind, ~ rownames(aln)[.x])) %>%
+      select(c(tipnames, values)) %>%
+      distinct() %>%
+      rename(sequence_group = values)
 
   }else{
     warning('all sequences above threshold.')
@@ -66,9 +66,9 @@ GroupSequences <- function(aln, snp_threshold = 0){
   }
 
 
-  out <- dplyr::tibble(tipnames = rownames(aln)) %>%
-    dplyr::left_join(groups) %>%
-    dplyr::mutate(sequence_group =
+  out <- tibble(tipnames = rownames(aln)) %>%
+    left_join(groups) %>%
+    mutate(sequence_group =
              ifelse(is.na(sequence_group),
                     max(sequence_group, na.rm = T) + row_number() + 1,
                     sequence_group))
