@@ -4,40 +4,36 @@
 ##                     alignment and allocate groups according to a threshold.
 ## Author:             James Baxter
 ## Date Created:       2025-08-14
+## Licence: GNU v3.0
 ################################################################################
 
 
 ################################### MAIN #######################################
 # Main analysis or transformation steps
 GroupSequences <- function(aln, snp_threshold = 0){
-  require(igraph)
-  require(phangorn)
-  require(tidyverse)
-  require(magrittr)
 
   # Sanity checks
-  if(class(aln) != "DNAbin"){
-    stop('Aln must be a DNAbin.')
+ if(inherits(aln, "PhyDat")){
+    aln_formatted <- aln
+    aln <- ape::as.DNAbin(aln) %>%
+      as.matrix(.)
+
+  }else if(inherits(aln, "DNAbin")){
+    aln <- as.matrix(aln)
+    aln_formatted <- phangorn::as.phyDat(aln)
+
+  }else{
+    stop('Aln must be a DNAbin or phyDat.')
   }
 
-  if(!is.matrix(aln)){
-    stop('Aln must be a matrix.')
-  }
 
   if(snp_threshold < 0){
     stop('SNP threshold must be positive.')
   }
 
 
-  # Ensure alignment is correctly formatted
-  if(class(aln) != 'PhyDat'){
-    aln_formatted <- as.phyDat(aln)
-  }else{
-    aln_formatted <- aln
-  }
-
   # Calculate hamming distance
-  hd_normalised <- dist.hamming(aln_formatted) %>%
+  hd_normalised <- phangorn::dist.hamming(aln_formatted) %>%
     as.matrix()
   hd_raw <- hd_normalised * ncol(aln)
 
@@ -46,7 +42,7 @@ GroupSequences <- function(aln, snp_threshold = 0){
     groups <- which(hd_raw <= snp_threshold,
                     arr.ind = TRUE) %>%
       dplyr::as_tibble(rownames = 'tipnames') %>%
-      filter(row !=col) %>%
+      dplyr::filter(row !=col) %>%
       dplyr::select(-tipnames) %>%
 
       # Infer network from HDs
@@ -56,9 +52,9 @@ GroupSequences <- function(aln, snp_threshold = 0){
       components() %>%
       getElement('membership') %>%
       stack() %>%
-      as_tibble() %>%
-      mutate(ind = as.numeric(as.character(ind))) %>%
-      mutate(tipnames = map_chr(ind, ~ rownames(aln)[.x])) %>%
+      dplyr::as_tibble() %>%
+      dplyr::mutate(ind = as.numeric(as.character(ind))) %>%
+      dplyr::mutate(tipnames = map_chr(ind, ~ rownames(aln)[.x])) %>%
       dplyr::select(c(tipnames, values)) %>%
       dplyr::distinct() %>%
       dplyr::rename(sequence_group = values)
@@ -70,9 +66,9 @@ GroupSequences <- function(aln, snp_threshold = 0){
   }
 
 
-  out <- tibble(tipnames = rownames(aln)) %>%
-    left_join(groups) %>%
-    mutate(sequence_group =
+  out <- dplyr::tibble(tipnames = rownames(aln)) %>%
+    dplyr::left_join(groups) %>%
+    dplyr::mutate(sequence_group =
              ifelse(is.na(sequence_group),
                     max(sequence_group, na.rm = T) + row_number() + 1,
                     sequence_group))
