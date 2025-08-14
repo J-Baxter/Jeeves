@@ -1,15 +1,16 @@
-################################################################################
-## Script Name:        GroupSequences
-## Purpose:            Calculate Hamming distance of a nucleotide sequence
-##                     alignment and allocate groups according to a threshold.
-## Author:             James Baxter
-## Date Created:       2025-08-14
-## Licence: GNU v3.0
-################################################################################
-
-
-################################### MAIN #######################################
-# Main analysis or transformation steps
+#' GroupSequences
+#'
+#'Calculate Hamming distance of a nucleotide sequence alignment and allocate
+#' groups according to a threshold.
+#'
+#' @param aln Nucleotide sequence alignment of class DNAbin or phyDat
+#' @param snp_threshold Integer (n>=0) indicating the maximum within-group
+#' Hamming distance.
+#'
+#' @returns A tibble with columns sequence_name and sequence_group
+#' @export
+#'
+#' @examples
 GroupSequences <- function(aln, snp_threshold = 0){
 
   # Sanity checks
@@ -68,6 +69,7 @@ GroupSequences <- function(aln, snp_threshold = 0){
 
   out <- tibble(tipnames = rownames(aln)) %>%
     left_join(groups) %>%
+    rename(sequence_name = tipnames) %>%
     mutate(sequence_group =
              ifelse(is.na(sequence_group),
                     max(sequence_group, na.rm = T) + row_number() + 1,
