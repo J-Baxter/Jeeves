@@ -7,7 +7,7 @@
 #' @param snp_threshold Integer (n>=0) indicating the maximum within-group
 #' Hamming distance.
 #'
-#' @returns A tibble with columns sequence_name and sequence_group
+#' @returns A tibble with columns sequence_name and sequence_group.
 #' @export
 #'
 #' @examples
