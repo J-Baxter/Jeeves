@@ -8,7 +8,7 @@
 #' @returns A list-column of formats including ymd, ym, y, decimal and precision.
 #' @export
 #'
-#' @examples df <- tibble(collection_date = c("2025-08-14",
+#' @examples df <- data.frame(collection_date = c("2025-08-14",
 #'  "14-08-2025", "2025-08", "08-2025", "2025"))
 #'
 #' df_nested <- df %>%

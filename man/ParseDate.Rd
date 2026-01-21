@@ -17,7 +17,7 @@ A list-column of formats including ymd, ym, y, decimal and precision.
 Format a date string with variable precision/delimiters. Output a
 }
 \examples{
-df <- tibble(collection_date = c("2025-08-14",
+df <- data.frame(collection_date = c("2025-08-14",
  "14-08-2025", "2025-08", "08-2025", "2025"))
 
 df_nested <- df \%>\%
