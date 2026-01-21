@@ -17,35 +17,78 @@
 #'
 ParseDate <- function(date_str) {
 
-  # Detect format with grepl (vectorised)
-  fmt <- case_when(
-    str_detect(date_str, "^\\d{4}-\\d{2}-\\d{2}$") ~ "yyyy-mm-dd",
-    str_detect(date_str, "^\\d{2}-\\d{2}-\\d{4}$") ~ "dd-mm-yyyy",
-    str_detect(date_str, "^\\d{4}-\\d{2}$")        ~ "yyyy-mm",
-    str_detect(date_str, "^\\d{2}-\\d{4}$")        ~ "mm-yyyy",
-    str_detect(date_str, "^\\d{4}$")               ~ "yyyy",
-    TRUE                                           ~ NA_character_
+  n <- length(date_str)
+  fmt <- rep(NA_character_, n)
+
+  # format detection
+  fmt[grepl("^\\d{4}-\\d{2}-\\d{2}$", date_str)] <- "yyyy-mm-dd"
+  fmt[grepl("^\\d{2}-\\d{2}-\\d{4}$", date_str)] <- "dd-mm-yyyy"
+  fmt[grepl("^\\d{4}-\\d{2}$", date_str)]        <- "yyyy-mm"
+  fmt[grepl("^\\d{2}-\\d{4}$", date_str)]        <- "mm-yyyy"
+  fmt[grepl("^\\d{4}$", date_str)]               <- "yyyy"
+
+  # initialise
+  year  <- month <- day <- rep(NA_integer_, n)
+
+  # yyyy-mm-dd
+  i <- fmt == "yyyy-mm-dd"
+  if (any(i)) {
+    year[i]  <- as.integer(substr(date_str[i], 1, 4))
+    month[i] <- as.integer(substr(date_str[i], 6, 7))
+    day[i]   <- as.integer(substr(date_str[i], 9, 10))
+  }
+
+  # dd-mm-yyyy
+  i <- fmt == "dd-mm-yyyy"
+  if (any(i)) {
+    day[i]   <- as.integer(substr(date_str[i], 1, 2))
+    month[i] <- as.integer(substr(date_str[i], 4, 5))
+    year[i]  <- as.integer(substr(date_str[i], 7, 10))
+  }
+
+  # yyyy-mm
+  i <- fmt == "yyyy-mm"
+  if (any(i)) {
+    year[i]  <- as.integer(substr(date_str[i], 1, 4))
+    month[i] <- as.integer(substr(date_str[i], 6, 7))
+  }
+
+  # mm-yyyy
+  i <- fmt == "mm-yyyy"
+  if (any(i)) {
+    month[i] <- as.integer(substr(date_str[i], 1, 2))
+    year[i]  <- as.integer(substr(date_str[i], 4, 7))
+  }
+
+  # yyyy
+  i <- fmt == "yyyy"
+  if (any(i)) {
+    year[i] <- as.integer(date_str[i])
+  }
+
+  # build Date (safe defaults)
+  date_parsed <- as.Date(
+    sprintf(
+      "%04d-%02d-%02d",
+      year,
+      ifelse(is.na(month), 1L, month),
+      ifelse(is.na(day),   1L, day)
+    )
   )
 
-  # Vectorised parse
-  date_parsed <- as.Date(rep(NA_character_, length(date_str)))
-  date_parsed[fmt == "yyyy-mm-dd"] <- ymd(date_str[fmt == "yyyy-mm-dd"])
-  date_parsed[fmt == "dd-mm-yyyy"] <- dmy(date_str[fmt == "dd-mm-yyyy"])
-  date_parsed[fmt == "mm-dd-yyyy"] <- mdy(date_str[fmt == "mm-dd-yyyy"])
-  date_parsed[fmt == "yyyy-mm"]    <- ym(date_str[fmt == "yyyy-mm"])
-  date_parsed[fmt == "mm-yyyy"]    <- my(date_str[fmt == "mm-yyyy"])
-  date_parsed[fmt == "yyyy"]       <- as.Date(as.POSIXlt(date_str[fmt == "yyyy"], format = "%Y"))
-
-  # Return list-column of tibbles (one per row)
-  tibble(
+  out <- data.frame(
     fmt_detected = fmt,
-    date_parsed  = date_parsed,
-    date_ymd     = ifelse(fmt %in% c("yyyy-mm-dd", "dd-mm-yyyy", "mm-dd-yyyy"),
-                          format(date_parsed, "%Y-%m-%d"), NA_character_),
-    date_ym      = ifelse(fmt %in% c("yyyy-mm-dd", "dd-mm-yyyy", "mm-dd-yyyy", "yyyy-mm", "mm-yyyy"),
-                          format(date_parsed, "%Y-%m"), NA_character_),
-    date_y       = ifelse(!is.na(date_parsed), format(date_parsed, "%Y"), NA_character_)
-  ) %>%
-    split(1:nrow(.)) %>%
-    unname()
+    date_ymd = ifelse(!is.na(day),
+                      format(date_parsed, "%Y-%m-%d"),
+                      NA_character_),
+    date_ym  = ifelse(!is.na(month),
+                      format(date_parsed, "%Y-%m"),
+                      NA_character_),
+    date_y   = ifelse(!is.na(year),
+                      format(date_parsed, "%Y"),
+                      NA_character_),
+    stringsAsFactors = FALSE
+  )
+
+  split(out, seq_len(n))
 }
