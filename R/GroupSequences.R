@@ -13,60 +13,43 @@
 #' @examples
 GroupSequences <- function(aln, snp_threshold = 0) {
 
-  if (!inherits(aln, c("DNAbin", "phyDat")))
-    stop("aln must be DNAbin or phyDat")
+  if (!inherits(aln, "DNAbin"))
+    aln <- ape::as.DNAbin(aln)
 
-  if (snp_threshold < 0)
-    stop("SNP threshold must be non-negative")
+  aln <- as.matrix(aln)
 
-  # convert formats
-  if (inherits(aln, "phyDat")) {
-    aln_mat <- as.matrix(as.DNAbin(aln))
-    aln_phy <- aln
-  } else {
-    aln_mat <- as.matrix(aln)
-    aln_phy <- as.phyDat(aln)
-  }
+  n <- nrow(aln)
+  tips <- rownames(aln)
 
-  n <- nrow(aln_mat)
-  tips <- rownames(aln_mat)
+  hd <- hamming_matrix(aln)
 
-  # pairwise SNP distances
-  hd <- ape::dist.hamming(aln_phy)
-  hd <- as.matrix(hd) * ncol(aln_mat)
-
-  # adjacency matrix
   adj <- hd <= snp_threshold
   diag(adj) <- FALSE
 
-  # ---- connected components (DFS) ----
   group <- rep(NA_integer_, n)
   gid <- 0L
 
   for (i in seq_len(n)) {
     if (!is.na(group[i])) next
-
     gid <- gid + 1L
     stack <- i
 
     while (length(stack)) {
       v <- stack[[1]]
       stack <- stack[-1]
-
       if (!is.na(group[v])) next
-
       group[v] <- gid
-      nbrs <- which(adj[v, ])
-      stack <- c(stack, nbrs[group[nbrs] %in% NA])
+      stack <- c(stack, which(adj[v, ]))
     }
   }
 
   data.frame(
-    sequence_name  = tips,
+    sequence_name = tips,
     sequence_group = group,
     stringsAsFactors = FALSE
   )
 }
+
 
 
 ################################### Demo #######################################
