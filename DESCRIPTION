@@ -11,9 +11,7 @@ Authors@R: c(
   )
 Description: More about what it does (maybe more than one line).
     Continuation lines should be indented.
-Depends: ape (>= 5.8-1), igraph (>= 2.1.4), 
-          magrittr (>= 2.0.3), phangorn (>= 2.12.1), dplyr (>= 1.1.4),
-          tibble (>= 3.2.1), purrr (>= 1.0.4)
+Depends: ape (>= 5.8-1)
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
