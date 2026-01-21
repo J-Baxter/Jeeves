@@ -21,7 +21,7 @@ GroupSequences <- function(aln, snp_threshold = 0) {
   n <- nrow(aln)
   tips <- rownames(aln)
 
-  hd <- hamming_matrix(aln)
+  hd <- HammingMatrix(aln)
 
   adj <- hd <= snp_threshold
   diag(adj) <- FALSE
