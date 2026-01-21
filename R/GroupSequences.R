@@ -11,72 +11,61 @@
 #' @export
 #'
 #' @examples
-GroupSequences <- function(aln, snp_threshold = 0){
+GroupSequences <- function(aln, snp_threshold = 0) {
 
-  # Sanity checks
- if(inherits(aln, "PhyDat")){
-    aln_formatted <- aln
-    aln <- as.DNAbin(aln) %>%
-      as.matrix(.)
+  if (!inherits(aln, c("DNAbin", "phyDat")))
+    stop("aln must be DNAbin or phyDat")
 
-  }else if(inherits(aln, "DNAbin")){
-    aln <- as.matrix(aln)
-    aln_formatted <- as.phyDat(aln)
+  if (snp_threshold < 0)
+    stop("SNP threshold must be non-negative")
 
-  }else{
-    stop('Aln must be a DNAbin or phyDat.')
+  # convert formats
+  if (inherits(aln, "phyDat")) {
+    aln_mat <- as.matrix(as.DNAbin(aln))
+    aln_phy <- aln
+  } else {
+    aln_mat <- as.matrix(aln)
+    aln_phy <- as.phyDat(aln)
   }
 
+  n <- nrow(aln_mat)
+  tips <- rownames(aln_mat)
 
-  if(snp_threshold < 0){
-    stop('SNP threshold must be positive.')
+  # pairwise SNP distances
+  hd <- ape::dist.hamming(aln_phy)
+  hd <- as.matrix(hd) * ncol(aln_mat)
+
+  # adjacency matrix
+  adj <- hd <= snp_threshold
+  diag(adj) <- FALSE
+
+  # ---- connected components (DFS) ----
+  group <- rep(NA_integer_, n)
+  gid <- 0L
+
+  for (i in seq_len(n)) {
+    if (!is.na(group[i])) next
+
+    gid <- gid + 1L
+    stack <- i
+
+    while (length(stack)) {
+      v <- stack[[1]]
+      stack <- stack[-1]
+
+      if (!is.na(group[v])) next
+
+      group[v] <- gid
+      nbrs <- which(adj[v, ])
+      stack <- c(stack, nbrs[group[nbrs] %in% NA])
+    }
   }
 
-
-  # Calculate hamming distance
-  hd_normalised <- dist.hamming(aln_formatted) %>%
-    as.matrix()
-  hd_raw <- hd_normalised * ncol(aln)
-
-  # Obtain groups of sequences for which HD < SNP threshold
-  if( any(hd_raw[lower.tri(hd_raw, diag = FALSE)] <= snp_threshold)){
-    groups <- which(hd_raw <= snp_threshold,
-                    arr.ind = TRUE) %>%
-      as_tibble(rownames = 'tipnames') %>%
-      filter(row !=col) %>%
-      select(-tipnames) %>%
-
-      # Infer network from HDs
-      graph_from_data_frame(.,
-                            directed = F) %>%
-
-      components() %>%
-      getElement('membership') %>%
-      stack() %>%
-      as_tibble() %>%
-      mutate(ind = as.numeric(as.character(ind))) %>%
-      mutate(tipnames = map_chr(ind, ~ rownames(aln)[.x])) %>%
-      select(c(tipnames, values)) %>%
-      distinct() %>%
-      rename(sequence_group = values)
-
-  }else{
-    warning('all sequences above threshold.')
-    groups <- tibble(tipnames = rownames(aln)) %>%
-      rowid_to_column(., var = 'sequence_group')
-  }
-
-
-  out <- tibble(tipnames = rownames(aln)) %>%
-    left_join(groups) %>%
-    rename(sequence_name = tipnames) %>%
-    mutate(sequence_group =
-             ifelse(is.na(sequence_group),
-                    max(sequence_group, na.rm = T) + row_number() + 1,
-                    sequence_group))
-
-
-  return(out)
+  data.frame(
+    sequence_name  = tips,
+    sequence_group = group,
+    stringsAsFactors = FALSE
+  )
 }
 
 
