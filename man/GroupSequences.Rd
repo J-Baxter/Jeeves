@@ -13,7 +13,7 @@ GroupSequences(aln, snp_threshold = 0)
 Hamming distance.}
 }
 \value{
-A tibble with columns sequence_name and sequence_group
+A tibble with columns sequence_name and sequence_group.
 }
 \description{
 Calculate Hamming distance of a nucleotide sequence alignment and allocate
